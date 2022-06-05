@@ -23,13 +23,14 @@ namespace Sonarr.Http.Authentication
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromForm] LoginResource resource, [FromQuery] string returnUrl = null)
+        [HttpPost("login/failed")]
+        public async Task<IActionResult> Login([FromForm] LoginResource resource, [FromQuery] string returnUrl = "/")
         {
             var user = _authService.Login(HttpContext.Request, resource.Username, resource.Password);
 
             if (user == null)
             {
-                return Redirect($"~/login?returnUrl={returnUrl}&loginFailed=true");
+                return Redirect(_configFileProvider.UrlBase + $"/login?ReturnUrl={returnUrl}&loginFailed=true");
             }
 
             var claims = new List<Claim>
@@ -46,15 +47,35 @@ namespace Sonarr.Http.Authentication
 
             await HttpContext.SignInAsync(AuthenticationType.Forms.ToString(), new ClaimsPrincipal(new ClaimsIdentity(claims, "Cookies", "user", "identifier")), authProperties);
 
-            return Redirect(_configFileProvider.UrlBase + "/");
+            return Redirect(_configFileProvider.UrlBase + returnUrl);
+        }
+
+        [HttpPost("login/sso")]
+        [HttpPost("login/sso/failed")]
+        public async Task LoginSso([FromForm] LoginResource resource, [FromQuery] string returnUrl = "/")
+        {
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = resource.RememberMe == "on",
+                RedirectUri = returnUrl
+            };
+
+            await HttpContext.ChallengeAsync(_configFileProvider.AuthenticationMethod.GetChallengeScheme(), authProperties);
         }
 
         [HttpGet("logout")]
         public async Task<IActionResult> Logout()
         {
             _authService.Logout(HttpContext);
-            await HttpContext.SignOutAsync(AuthenticationType.Forms.ToString());
+
+            await HttpContext.SignOutAsync(_configFileProvider.AuthenticationMethod.ToString());
             return Redirect(_configFileProvider.UrlBase + "/");
+        }
+
+        [HttpGet("forbidden")]
+        public IActionResult Forbidden()
+        {
+            return StatusCode(403);
         }
     }
 }

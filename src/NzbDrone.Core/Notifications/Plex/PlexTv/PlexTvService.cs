@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -12,6 +13,7 @@ namespace NzbDrone.Core.Notifications.Plex.PlexTv
         PlexTvPinUrlResponse GetPinUrl();
         PlexTvSignInUrlResponse GetSignInUrl(string callbackUrl, int pinId, string pinCode);
         string GetAuthToken(int pinId);
+        List<PlexTvResource> GetResources(string token);
 
         HttpRequest GetWatchlist(string authToken);
     }
@@ -82,6 +84,11 @@ namespace NzbDrone.Core.Notifications.Plex.PlexTv
             var authToken = _proxy.GetAuthToken(_configService.PlexClientIdentifier, pinId);
 
             return authToken;
+        }
+
+        public List<PlexTvResource> GetResources(string token)
+        {
+            return _proxy.GetResources(_configService.PlexClientIdentifier, token);
         }
 
         public HttpRequest GetWatchlist(string authToken)
