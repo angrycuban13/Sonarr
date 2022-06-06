@@ -23,14 +23,24 @@ namespace Sonarr.Http.Authentication
         }
 
         [HttpPost("login")]
-        [HttpPost("login/failed")]
-        public async Task<IActionResult> Login([FromForm] LoginResource resource, [FromQuery] string returnUrl = "/")
+        public Task LoginLogin([FromForm] LoginResource resource, [FromQuery] string returnUrl = "/")
+        {
+            if (_configFileProvider.AuthenticationMethod == AuthenticationType.Forms)
+            {
+                return LoginForms(resource, returnUrl);
+            }
+
+            return LoginSso(resource, returnUrl);
+        }
+
+        private async Task LoginForms(LoginResource resource, string returnUrl)
         {
             var user = _authService.Login(HttpContext.Request, resource.Username, resource.Password);
 
             if (user == null)
             {
-                return Redirect(_configFileProvider.UrlBase + $"/login?ReturnUrl={returnUrl}&loginFailed=true");
+                await HttpContext.ForbidAsync(AuthenticationType.Forms.ToString());
+                return;
             }
 
             var claims = new List<Claim>
@@ -42,17 +52,14 @@ namespace Sonarr.Http.Authentication
 
             var authProperties = new AuthenticationProperties
             {
-                IsPersistent = resource.RememberMe == "on"
+                IsPersistent = resource.RememberMe == "on",
+                RedirectUri = returnUrl
             };
 
             await HttpContext.SignInAsync(AuthenticationType.Forms.ToString(), new ClaimsPrincipal(new ClaimsIdentity(claims, "Cookies", "user", "identifier")), authProperties);
-
-            return Redirect(_configFileProvider.UrlBase + returnUrl);
         }
 
-        [HttpPost("login/sso")]
-        [HttpPost("login/sso/failed")]
-        public async Task LoginSso([FromForm] LoginResource resource, [FromQuery] string returnUrl = "/")
+        private async Task LoginSso(LoginResource resource, string returnUrl = "/")
         {
             var authProperties = new AuthenticationProperties
             {
@@ -64,18 +71,17 @@ namespace Sonarr.Http.Authentication
         }
 
         [HttpGet("logout")]
-        public async Task<IActionResult> Logout()
+        public async Task Logout()
         {
             _authService.Logout(HttpContext);
 
-            await HttpContext.SignOutAsync(_configFileProvider.AuthenticationMethod.ToString());
-            return Redirect(_configFileProvider.UrlBase + "/");
-        }
+            var authType = _configFileProvider.AuthenticationMethod;
+            await HttpContext.SignOutAsync(authType.ToString());
 
-        [HttpGet("forbidden")]
-        public IActionResult Forbidden()
-        {
-            return StatusCode(403);
+            if (authType != AuthenticationType.Forms)
+            {
+                await HttpContext.SignOutAsync(authType.GetChallengeScheme());
+            }
         }
     }
 }

@@ -42,6 +42,7 @@ namespace Sonarr.Http.Authentication
                     options.AccessDeniedPath = "/login/failed";
                     options.ExpireTimeSpan = TimeSpan.FromDays(7);
                     options.SlidingExpiration = true;
+                    options.LogoutPath = "/logout";
                 })
                 .AddCookie(AuthenticationType.Plex.ToString(), options =>
                 {

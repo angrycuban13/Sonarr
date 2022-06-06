@@ -22,6 +22,7 @@ namespace Sonarr.Http.Authentication.OpenIdConnect
             options.ClientId = _configService.OidcClientId.IsNullOrWhiteSpace() ? "dummy" : _configService.OidcClientId;
             options.ClientSecret = _configService.OidcClientSecret.IsNullOrWhiteSpace() ? "dummy" : _configService.OidcClientSecret;
             options.Authority = _configService.OidcAuthority.IsNullOrWhiteSpace() ? "https://dummy.com" : _configService.OidcAuthority;
+            options.SignedOutRedirectUri = "/login/sso";
             options.SignInScheme = AuthenticationType.Oidc.ToString();
             options.NonceCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
             options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;

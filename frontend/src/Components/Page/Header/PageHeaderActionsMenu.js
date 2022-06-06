@@ -59,7 +59,7 @@ function PageHeaderActionsMenu(props) {
               <>
                 <div className={styles.separator} />
                 <MenuItem
-                  to={`${window.Sonarr.urlBase}/logout`}
+                  to={`${window.Sonarr.urlBase}/logout?ReturnUrl=/`}
                   noRouter={true}
                 >
                   <Icon
